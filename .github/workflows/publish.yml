@@ -1,0 +1,43 @@
+name: Publish to npm
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'notify-desktop-v*'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish-desktop:
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      startsWith(github.ref_name, 'notify-desktop-v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Validate desktop package
+        run: bun run check:desktop
+
+      - name: Publish @rbright/notify-desktop
+        run: npm publish --workspace extensions/notify-desktop --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

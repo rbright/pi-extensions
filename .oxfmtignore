@@ -1,0 +1,12 @@
+**/.agents/**
+**/.bun-cache/**
+**/.bun-tmp/**
+**/.cache/**
+**/.direnv/**
+**/.git/**
+**/.jj/**
+**/.turbo/**
+**/coverage/**
+**/dist/**
+**/node_modules/**
+**/target/**
