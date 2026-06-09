@@ -3,13 +3,10 @@ export type ProtocolPreference = 'auto' | 'osc9' | 'osc777';
 export interface NotifyDesktopConfig {
   enabled: boolean;
   protocol: ProtocolPreference;
-  title: string;
-  body: string;
+  title?: string;
+  body?: string;
   tmuxPassthrough: boolean;
 }
-
-const DEFAULT_TITLE = 'Pi';
-const DEFAULT_BODY = 'Turn complete — awaiting feedback';
 
 function parseBoolean(value: string | undefined, defaultValue: boolean): boolean {
   if (value === undefined) {
@@ -41,17 +38,17 @@ function parseProtocol(value: string | undefined): ProtocolPreference {
   return 'auto';
 }
 
-function readText(value: string | undefined, fallback: string): string {
+function readText(value: string | undefined): string | undefined {
   const normalized = value?.trim();
-  return normalized && normalized.length > 0 ? normalized : fallback;
+  return normalized && normalized.length > 0 ? normalized : undefined;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): NotifyDesktopConfig {
   return {
     enabled: parseBoolean(env.PI_NOTIFY_DESKTOP_ENABLED, true),
     protocol: parseProtocol(env.PI_NOTIFY_DESKTOP_PROTOCOL),
-    title: readText(env.PI_NOTIFY_DESKTOP_TITLE, DEFAULT_TITLE),
-    body: readText(env.PI_NOTIFY_DESKTOP_BODY, DEFAULT_BODY),
+    title: readText(env.PI_NOTIFY_DESKTOP_TITLE),
+    body: readText(env.PI_NOTIFY_DESKTOP_BODY),
     tmuxPassthrough: parseBoolean(env.PI_NOTIFY_DESKTOP_TMUX_PASSTHROUGH, true),
   };
 }

@@ -11,8 +11,8 @@ describe('loadConfig', () => {
     expect(config).toEqual({
       enabled: true,
       protocol: 'auto',
-      title: 'Pi',
-      body: 'Turn complete — awaiting feedback',
+      title: undefined,
+      body: undefined,
       tmuxPassthrough: true,
     });
   });
@@ -37,13 +37,13 @@ describe('loadConfig', () => {
     expect(config.protocol).toBe('auto');
   });
 
-  it('uses fallback text when title or body are empty', () => {
+  it('ignores empty title or body overrides', () => {
     const config = loadConfig({
       PI_NOTIFY_DESKTOP_TITLE: '   ',
       PI_NOTIFY_DESKTOP_BODY: '',
     });
 
-    expect(config.title).toBe('Pi');
-    expect(config.body).toBe('Turn complete — awaiting feedback');
+    expect(config.title).toBeUndefined();
+    expect(config.body).toBeUndefined();
   });
 });

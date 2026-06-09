@@ -65,6 +65,74 @@ describe('registerDesktopNotifyExtension', () => {
     expect(notify).toHaveBeenCalledTimes(1);
   });
 
+  it('passes assistant message summaries into notifications', async () => {
+    const notify = vi.fn();
+    const { handlers } = setupExtension(notify);
+
+    await handlers.get('agent_start')?.({ type: 'agent_start' }, {});
+    await handlers.get('message_end')?.(
+      {
+        message: {
+          role: 'assistant',
+          stopReason: 'stop',
+          content: 'Updated the platform deployment docs. Run `just lint` next.',
+        },
+        type: 'message_end',
+      },
+      {},
+    );
+
+    expect(notify).toHaveBeenCalledWith({ body: 'Updated the platform deployment docs.' });
+  });
+
+  it('does not use suppressed tool-use messages as fallback summaries', async () => {
+    const notify = vi.fn();
+    const { handlers } = setupExtension(notify);
+
+    await handlers.get('agent_start')?.({ type: 'agent_start' }, {});
+    await handlers.get('message_end')?.(
+      {
+        message: {
+          role: 'assistant',
+          stopReason: 'toolUse',
+          content: 'Need to inspect files.',
+        },
+        type: 'message_end',
+      },
+      {},
+    );
+    await handlers.get('agent_end')?.({ type: 'agent_end', messages: [] }, {});
+
+    expect(notify).toHaveBeenCalledWith({});
+  });
+
+  it('uses agent_end messages for fallback notification summaries', async () => {
+    const notify = vi.fn();
+    const { handlers } = setupExtension(notify);
+
+    await handlers.get('agent_start')?.({ type: 'agent_start' }, {});
+    await handlers.get('message_end')?.(
+      {
+        message: {
+          role: 'assistant',
+          stopReason: 'toolUse',
+          content: 'Need to inspect files.',
+        },
+        type: 'message_end',
+      },
+      {},
+    );
+    await handlers.get('agent_end')?.(
+      {
+        messages: [{ role: 'assistant', content: [{ text: 'Finished the Ghostty cask addition.' }] }],
+        type: 'agent_end',
+      },
+      {},
+    );
+
+    expect(notify).toHaveBeenCalledWith({ body: 'Finished the Ghostty cask addition.' });
+  });
+
   it('default export registers lifecycle hooks', () => {
     const on = vi.fn();
     const registerCommand = vi.fn();
