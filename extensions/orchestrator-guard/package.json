@@ -1,0 +1,49 @@
+{
+  "name": "@rbright/orchestrator-guard",
+  "version": "0.1.0",
+  "description": "Keeps the Pi orchestrator focused on clarification, routing, and summaries by blocking direct implementation and publish tools.",
+  "keywords": [
+    "extension",
+    "guardrail",
+    "pi",
+    "pi-coding-agent",
+    "pi-package",
+    "routing"
+  ],
+  "license": "MIT",
+  "author": "Ryan Bright <ryan@moonriselabs.ai>",
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean --sourcemap",
+    "clean": "rm -rf coverage dist",
+    "lint": "oxlint src/**/*.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "check": "bun run lint && bun run typecheck && bun run test && bun run build"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  }
+}

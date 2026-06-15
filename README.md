@@ -5,6 +5,7 @@ Monorepo for Pi notification extensions using Turborepo.
 ## Workspace layout
 
 - `extensions/notify-desktop` - `@rbright/notify-desktop`
+- `extensions/orchestrator-guard` - `@rbright/orchestrator-guard`
 
 All format/lint/typecheck/test/build tooling is centralized at the repo root.
 
@@ -20,15 +21,21 @@ just build
 just check
 ```
 
-Build the extension independently:
+Build the desktop notifier independently:
 
 ```bash
 just build-desktop
 ```
 
+Build the orchestrator guard independently:
+
+```bash
+cd extensions/orchestrator-guard && bun run check
+```
+
 ## Publishing
 
-Only `@rbright/notify-desktop` is published from this repository.
+Only `@rbright/notify-desktop` is published from this repository. `@rbright/orchestrator-guard` is currently local-only.
 
 Manual publish:
 
