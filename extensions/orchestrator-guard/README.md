@@ -5,7 +5,8 @@ Pi extension that keeps the root orchestrator session focused on clarification, 
 ## Behavior
 
 - blocks direct root use of implementation/publish/noisy tools like `bash`, `edit`, `write`, `mcp`, and web/context execution helpers
-- allows subagent sessions to use their normal toolsets
+- injects root-only workflow guidance before the agent starts: ask one high-leverage clarifying question before non-trivial delegation, keep grill-me/ask_user_question/approval in root, have delegated planners return the next grill question, and avoid generic filenames like `plan.md`, `context.md`, or `session.md`
+- allows subagent sessions to use their normal toolsets without injected root guidance
 - reads config from `~/.pi/agent/orchestrator-guard.json` by default
 
 ## Notes
