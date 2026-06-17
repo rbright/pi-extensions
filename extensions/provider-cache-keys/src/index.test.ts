@@ -15,6 +15,7 @@ import registerProviderCacheKeys, {
   DEFAULT_CONFIG,
   affinitySuffixForSubagent,
   deriveRepoState,
+  inferProviderFromPayload,
   loadConfig,
 } from './index';
 
@@ -111,8 +112,39 @@ describe('provider cache key extension', () => {
     expect(on).toHaveBeenCalledWith('message_end', expect.any(Function));
   });
 
+  it('infers provider names from legacy provider payloads', () => {
+    expect(inferProviderFromPayload({ model: 'moonshotai/kimi-k2.7-code' })).toBe('openrouter');
+    expect(inferProviderFromPayload({ model: 'accounts/fireworks/models/kimi-k2p7-code' })).toBe('fireworks');
+    expect(inferProviderFromPayload({ model: 'gpt-5.5' })).toBeNull();
+  });
+
   it('falls back to defaults when config is missing', () => {
     expect(loadConfig('/tmp/this-file-does-not-exist.json')).toEqual(DEFAULT_CONFIG);
+  });
+
+  it('supports the current legacy before_provider_request payload wrapper without throwing', () => {
+    const { handlers } = setupExtension();
+    const beforeRequest = handlers.get('before_provider_request');
+
+    const nextPayload = beforeRequest?.(
+      {
+        type: 'before_provider_request',
+        payload: { model: 'moonshotai/kimi-k2.7-code' },
+      },
+      { cwd: process.cwd() },
+    ) as Record<string, string>;
+
+    expect(nextPayload.session_id).toMatch(/^pi:aff:v1:r:/);
+  });
+
+  it('ignores provider-request events that do not expose enough metadata', () => {
+    const { handlers } = setupExtension();
+    const beforeRequest = handlers.get('before_provider_request');
+
+    expect(() =>
+      beforeRequest?.({ type: 'before_provider_request', payload: {} }, { cwd: process.cwd() }),
+    ).not.toThrow();
+    expect(beforeRequest?.({ type: 'before_provider_request', payload: {} }, { cwd: process.cwd() })).toBeUndefined();
   });
 
   it('keeps parent and reviewer affinity repo-derived even with different Pi session ids', () => {

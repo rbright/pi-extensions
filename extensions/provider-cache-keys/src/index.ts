@@ -32,13 +32,15 @@ interface ExtensionAPILike {
 }
 
 interface BeforeProviderRequestEventLike {
-  model: { provider: string; id: string };
-  sessionId: string;
-  streamOptions: { headers?: Record<string, string> };
+  type?: string;
+  payload?: unknown;
+  model?: { provider?: string; id?: string };
+  sessionId?: string;
+  streamOptions?: { headers?: Record<string, string> };
 }
 
 interface BeforeProviderPayloadEventLike {
-  model: { provider: string };
+  model?: { provider?: string };
   payload: unknown;
 }
 
@@ -163,6 +165,24 @@ function currentSubagentName(): string | null {
   return process.env.PI_SUBAGENT_NAME || null;
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function inferModelIdFromPayload(payload: unknown): string | null {
+  if (!isPlainObject(payload) || typeof payload.model !== 'string') return null;
+  return payload.model;
+}
+
+export function inferProviderFromPayload(payload: unknown): string | null {
+  if (!isPlainObject(payload)) return null;
+  if (typeof payload.provider === 'string') return payload.provider;
+  if (typeof payload.model !== 'string') return null;
+  if (payload.model.startsWith('accounts/fireworks/models/')) return 'fireworks';
+  if (payload.model.includes('/')) return 'openrouter';
+  return null;
+}
+
 function writeLog(config: CacheConfig, record: Record<string, unknown>): void {
   const logPath = expandHomePath(config.logFile);
   mkdirSync(dirname(logPath), { recursive: true });
@@ -172,32 +192,42 @@ function writeLog(config: CacheConfig, record: Record<string, unknown>): void {
 export function registerProviderCacheKeys(pi: ExtensionAPILike): void {
   const pendingRequests: PendingRequest[] = [];
 
-  pi.on('before_provider_request', (rawEvent: BeforeProviderRequestEventLike, ctx: ExtensionContextLike) => {
-    const event = rawEvent;
+  pi.on('before_provider_request', (event: BeforeProviderRequestEventLike, ctx: ExtensionContextLike) => {
     const config = loadConfig();
     if (!config.enabled) return;
 
+    const payload = Object.prototype.hasOwnProperty.call(event, 'payload') ? event.payload : undefined;
+    const provider = event.model?.provider ?? inferProviderFromPayload(payload);
+    if (!provider) return;
+
     const subagentName = currentSubagentName();
     const repo = deriveRepoState(ctx.cwd, config.affinityScope, affinitySuffixForSubagent(subagentName));
-    pendingRequests.push({
-      provider: event.model.provider,
-      model: event.model.id,
-      repoHash: repo.repoHash,
-      cacheAffinityKey: repo.cacheAffinityKey,
-      cacheIsolationKey: repo.cacheIsolationKey,
-      piSessionId: event.sessionId,
-      subagentName,
-      startedAt: Date.now(),
-      responseStatus: null,
-    });
+    const modelId = event.model?.id ?? inferModelIdFromPayload(payload);
+    if (modelId && typeof event.sessionId === 'string') {
+      pendingRequests.push({
+        provider,
+        model: modelId,
+        repoHash: repo.repoHash,
+        cacheAffinityKey: repo.cacheAffinityKey,
+        cacheIsolationKey: repo.cacheIsolationKey,
+        piSessionId: event.sessionId,
+        subagentName,
+        startedAt: Date.now(),
+        responseStatus: null,
+      });
+    }
 
-    const headerOverrides = buildHeaderOverrides(event.model.provider, repo.cacheAffinityKey);
+    if (Object.prototype.hasOwnProperty.call(event, 'payload')) {
+      return applyProviderPayload(provider, payload, repo);
+    }
+
+    const headerOverrides = buildHeaderOverrides(provider, repo.cacheAffinityKey);
     if (Object.keys(headerOverrides).length === 0) return;
 
     return {
       streamOptions: {
         headers: {
-          ...(event.streamOptions.headers ?? {}),
+          ...(event.streamOptions?.headers ?? {}),
           ...headerOverrides,
         },
       },
@@ -208,9 +238,12 @@ export function registerProviderCacheKeys(pi: ExtensionAPILike): void {
     const config = loadConfig();
     if (!config.enabled) return { payload: event.payload };
 
+    const provider = event.model?.provider ?? inferProviderFromPayload(event.payload);
+    if (!provider) return { payload: event.payload };
+
     const repo = deriveRepoState(ctx.cwd, config.affinityScope, affinitySuffixForSubagent(currentSubagentName()));
     return {
-      payload: applyProviderPayload(event.model.provider, event.payload, repo),
+      payload: applyProviderPayload(provider, event.payload, repo),
     };
   });
 
