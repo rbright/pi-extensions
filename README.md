@@ -6,6 +6,7 @@ Monorepo for Pi notification extensions using Turborepo.
 
 - `extensions/notify-desktop` - `@rbright/notify-desktop`
 - `extensions/orchestrator-guard` - `@rbright/orchestrator-guard`
+- `extensions/provider-cache-keys` - `@rbright/provider-cache-keys`
 
 All format/lint/typecheck/test/build tooling is centralized at the repo root.
 

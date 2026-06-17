@@ -35,6 +35,16 @@
         "@earendil-works/pi-coding-agent": "*",
       },
     },
+    "extensions/provider-cache-keys": {
+      "name": "@rbright/provider-cache-keys",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@earendil-works/pi-coding-agent": "*",
+      },
+      "peerDependencies": {
+        "@earendil-works/pi-coding-agent": "*",
+      },
+    },
   },
   "packages": {
     "@anthropic-ai/sdk": ["@anthropic-ai/sdk@0.91.1", "", { "dependencies": { "json-schema-to-ts": "^3.1.1" }, "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" }, "optionalPeers": ["zod"], "bin": { "anthropic-ai-sdk": "bin/cli" } }, "sha512-LAmu761tSN9r66ixvmciswUj/ZC+1Q4iAfpedTfSVLeswRwnY3n2Nb6Tsk+cLPP28aLOPWeMgIuTuCcMC6W/iw=="],
@@ -300,6 +310,8 @@
     "@rbright/notify-desktop": ["@rbright/notify-desktop@workspace:extensions/notify-desktop"],
 
     "@rbright/orchestrator-guard": ["@rbright/orchestrator-guard@workspace:extensions/orchestrator-guard"],
+
+    "@rbright/provider-cache-keys": ["@rbright/provider-cache-keys@workspace:extensions/provider-cache-keys"],
 
     "@rollup/rollup-android-arm-eabi": ["@rollup/rollup-android-arm-eabi@4.59.0", "", { "os": "android", "cpu": "arm" }, "sha512-upnNBkA6ZH2VKGcBj9Fyl9IGNPULcjXRlg0LLeaioQWueH30p6IXtJEbKAgvyv+mJaMxSm1l6xwDXYjpEMiLMg=="],
 
