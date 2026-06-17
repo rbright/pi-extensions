@@ -1,11 +1,10 @@
 {
   "name": "@rbright/provider-cache-keys",
   "version": "0.1.0",
-  "description": "Pi extension that injects stable repo-derived cache-affinity keys for OpenRouter and Fireworks requests.",
+  "description": "Pi extension that injects stable repo-derived OpenRouter sticky-routing keys.",
   "keywords": [
     "cache",
     "extension",
-    "fireworks",
     "openrouter",
     "pi",
     "pi-coding-agent",

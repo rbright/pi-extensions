@@ -6,7 +6,6 @@ import { basename, dirname, join } from 'node:path';
 import {
   applyProviderPayload,
   buildCacheKeys,
-  buildHeaderOverrides,
   canonicalRepoStringFromLocal,
   canonicalRepoStringFromRemote,
   type CacheConfig,
@@ -26,6 +25,18 @@ const RETRIEVAL_AFFINITY_SUFFIX_BY_SUBAGENT: Record<string, string> = {
   web: 'retrieval:web',
   'web-researcher': 'retrieval:web',
 };
+
+const OPENROUTER_MODEL_PREFIXES = [
+  'anthropic/',
+  'deepseek/',
+  'google/',
+  'meta-llama/',
+  'minimax/',
+  'moonshotai/',
+  'openai/',
+  'qwen/',
+  'z-ai/',
+];
 
 interface ExtensionAPILike {
   on: (eventName: string, handler: unknown) => void;
@@ -178,9 +189,8 @@ export function inferProviderFromPayload(payload: unknown): string | null {
   if (!isPlainObject(payload)) return null;
   if (typeof payload.provider === 'string') return payload.provider;
   if (typeof payload.model !== 'string') return null;
-  if (payload.model.startsWith('accounts/fireworks/models/')) return 'fireworks';
-  if (payload.model.includes('/')) return 'openrouter';
-  return null;
+  const modelId = payload.model;
+  return OPENROUTER_MODEL_PREFIXES.some((prefix) => modelId.startsWith(prefix)) ? 'openrouter' : null;
 }
 
 function writeLog(config: CacheConfig, record: Record<string, unknown>): void {
@@ -220,18 +230,6 @@ export function registerProviderCacheKeys(pi: ExtensionAPILike): void {
     if (Object.prototype.hasOwnProperty.call(event, 'payload')) {
       return applyProviderPayload(provider, payload, repo);
     }
-
-    const headerOverrides = buildHeaderOverrides(provider, repo.cacheAffinityKey);
-    if (Object.keys(headerOverrides).length === 0) return;
-
-    return {
-      streamOptions: {
-        headers: {
-          ...(event.streamOptions?.headers ?? {}),
-          ...headerOverrides,
-        },
-      },
-    };
   });
 
   pi.on('before_provider_payload', (event: BeforeProviderPayloadEventLike, ctx: ExtensionContextLike) => {

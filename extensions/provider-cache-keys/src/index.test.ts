@@ -7,7 +7,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   applyProviderPayload,
   buildCacheKeys,
-  buildHeaderOverrides,
   canonicalRepoStringFromLocal,
   canonicalRepoStringFromRemote,
 } from './cache-keys';
@@ -73,27 +72,14 @@ describe('provider cache key helpers', () => {
     expect(other.repoHash).not.toBe(repo.repoHash);
   });
 
-  it('injects provider-specific payload fields only for OpenRouter and Fireworks', () => {
+  it('injects only openrouter session affinity into supported payloads', () => {
     const keys = buildCacheKeys('repo:v1|remote:github.com/moonrise-labs/platform', 'repo');
 
-    expect(applyProviderPayload('openrouter', { model: 'x', prompt_cache_key: 'old' }, keys)).toEqual({
+    expect(applyProviderPayload('openrouter', { model: 'x' }, keys)).toEqual({
       model: 'x',
-      prompt_cache_key: keys.cacheAffinityKey,
       session_id: keys.cacheAffinityKey,
     });
-    expect(applyProviderPayload('fireworks', { model: 'x' }, keys)).toEqual({
-      model: 'x',
-      prompt_cache_key: keys.cacheAffinityKey,
-      prompt_cache_isolation_key: keys.cacheIsolationKey,
-      perf_metrics_in_response: true,
-    });
     expect(applyProviderPayload('openai', { model: 'x' }, keys)).toEqual({ model: 'x' });
-  });
-
-  it('only overrides Fireworks session-affinity headers', () => {
-    const key = 'pi:aff:v1:r:abcd1234abcd1234';
-    expect(buildHeaderOverrides('openrouter', key)).toEqual({});
-    expect(buildHeaderOverrides('fireworks', key)).toEqual({ 'x-session-affinity': key });
   });
 });
 
@@ -112,9 +98,10 @@ describe('provider cache key extension', () => {
     expect(on).toHaveBeenCalledWith('message_end', expect.any(Function));
   });
 
-  it('infers provider names from legacy provider payloads', () => {
+  it('infers openrouter from known legacy payload model ids', () => {
     expect(inferProviderFromPayload({ model: 'moonshotai/kimi-k2.7-code' })).toBe('openrouter');
-    expect(inferProviderFromPayload({ model: 'accounts/fireworks/models/kimi-k2p7-code' })).toBe('fireworks');
+    expect(inferProviderFromPayload({ model: 'deepseek/deepseek-v4-flash' })).toBe('openrouter');
+    expect(inferProviderFromPayload({ model: 'accounts/fireworks/models/kimi-k2p7-code' })).toBeNull();
     expect(inferProviderFromPayload({ model: 'gpt-5.5' })).toBeNull();
   });
 
@@ -173,7 +160,7 @@ describe('provider cache key extension', () => {
     expect(parentPayload.payload.session_id).toBe(reviewerPayload.payload.session_id);
   });
 
-  it('uses source-specific affinity for retrieval agents while keeping isolation repo-derived', () => {
+  it('uses source-specific affinity for retrieval agents in openrouter session ids', () => {
     const { handlers } = setupExtension();
     const beforePayload = handlers.get('before_provider_payload');
     const ctx = { cwd: process.cwd() };
@@ -181,16 +168,15 @@ describe('provider cache key extension', () => {
     process.env.PI_SUBAGENT_NAME = 'linear';
     const payload = beforePayload?.(
       {
-        model: { provider: 'fireworks' },
-        payload: { model: 'accounts/fireworks/models/kimi-k2p7-code' },
+        model: { provider: 'openrouter' },
+        payload: { model: 'moonshotai/kimi-k2.7-code' },
       },
       ctx,
     ) as { payload: Record<string, string> };
     const repoState = deriveRepoState(process.cwd(), 'repo');
 
     expect(affinitySuffixForSubagent('linear')).toBe('retrieval:linear');
-    expect(payload.payload.prompt_cache_isolation_key).toBe(repoState.cacheIsolationKey);
-    expect(payload.payload.prompt_cache_key).toBe(`${repoState.cacheAffinityKey}:retrieval:linear`);
+    expect(payload.payload.session_id).toBe(`${repoState.cacheAffinityKey}:retrieval:linear`);
   });
 
   it('does not log raw provider error text', () => {

@@ -109,16 +109,6 @@ export function buildCacheKeys(
   return { repoHash, cacheIsolationKey, cacheAffinityKey };
 }
 
-export function buildHeaderOverrides(provider: string, cacheAffinityKey: string): Record<string, string> {
-  if (provider === 'fireworks') {
-    return {
-      'x-session-affinity': cacheAffinityKey,
-    };
-  }
-
-  return {};
-}
-
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -134,22 +124,6 @@ export function applyProviderPayload(
 
   if (provider === 'openrouter') {
     next.session_id = keys.cacheAffinityKey;
-    if ('prompt_cache_key' in next) {
-      next.prompt_cache_key = keys.cacheAffinityKey;
-    }
-    if ('prompt_cache_isolation_key' in next) {
-      next.prompt_cache_isolation_key = keys.cacheIsolationKey;
-    }
-    return next;
-  }
-
-  if (provider === 'fireworks') {
-    next.prompt_cache_key = keys.cacheAffinityKey;
-    next.prompt_cache_isolation_key = keys.cacheIsolationKey;
-    next.perf_metrics_in_response = true;
-    if ('session_id' in next) {
-      next.session_id = keys.cacheAffinityKey;
-    }
     return next;
   }
 
